@@ -1,0 +1,99 @@
+id: Symantec Data Loss Prevention Test
+version: -1
+name: Symantec Data Loss Prevention Test
+starttaskid: "0"
+tasks:
+  "0":
+    id: "0"
+    taskid: 34cae85e-421e-4f7f-8d14-c4a6efc0529f
+    type: start
+    task:
+      id: 34cae85e-421e-4f7f-8d14-c4a6efc0529f
+      version: -1
+      name: ""
+      iscommand: false
+      brand: ""
+    nexttasks:
+      '#none#':
+      - "1"
+    separatecontext: false
+    view: |-
+      {
+        "position": {
+          "x": 450,
+          "y": 50
+        }
+      }
+    note: false
+    timertriggers: []
+    ignoreworker: false
+  "1":
+    id: "1"
+    taskid: 5b25d6b9-93f9-4f6f-856a-2146fc392a9a
+    type: regular
+    task:
+      id: 5b25d6b9-93f9-4f6f-856a-2146fc392a9a
+      version: -1
+      name: DeleteContext
+      description: Delete field from context
+      scriptName: DeleteContext
+      type: regular
+      iscommand: false
+      brand: ""
+    nexttasks:
+      '#none#':
+      - "2"
+    scriptarguments:
+      all:
+        simple: "yes"
+      index: {}
+      key: {}
+      keysToKeep: {}
+      subplaybook: {}
+    separatecontext: false
+    view: |-
+      {
+        "position": {
+          "x": 450,
+          "y": 230
+        }
+      }
+    note: false
+    timertriggers: []
+    ignoreworker: false
+  "2":
+    id: "2"
+    taskid: bfa691c8-1212-4020-8c67-e203d2df7800
+    type: title
+    task:
+      id: bfa691c8-1212-4020-8c67-e203d2df7800
+      version: -1
+      name: Done
+      type: title
+      iscommand: false
+      brand: ""
+    separatecontext: false
+    view: |-
+      {
+        "position": {
+          "x": 450,
+          "y": 430
+        }
+      }
+    note: false
+    timertriggers: []
+    ignoreworker: false
+view: |-
+  {
+    "linkLabelsPosition": {},
+    "paper": {
+      "dimensions": {
+        "height": 445,
+        "width": 380,
+        "x": 450,
+        "y": 50
+      }
+    }
+  }
+inputs: []
+outputs: []

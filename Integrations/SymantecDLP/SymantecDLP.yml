@@ -180,7 +180,7 @@ script:
       required: false
       secret: false
     - default: false
-      description: The time of the note.
+      description: The time of the note in ISO format.
       isArray: false
       name: note_time
       required: false
