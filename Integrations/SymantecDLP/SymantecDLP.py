@@ -9,10 +9,11 @@ from requests.auth import AuthBase, HTTPBasicAuth
 from zeep import helpers
 from zeep.cache import SqliteCache
 from datetime import datetime
-from typing import Dict, Tuple
+from typing import Dict, Tuple, Any
 from dateutil.parser import parse
 import urllib3
 import random
+import uuid
 
 # Disable insecure warnings
 urllib3.disable_warnings()
@@ -105,7 +106,7 @@ def parse_component(raw_components: list) -> list:
     return components
 
 
-def datetime_to_iso_format(obj: any):
+def datetime_to_iso_format(obj: Any):
     """
     Converts a datetime object into an ISO string representation
     :param obj: Any type of object
@@ -201,11 +202,10 @@ def update_incidents_command(client: Client, args: Dict) -> Tuple[str, Dict, Dic
     incident_id: str = args.get('incident_id', '')
     incident_attributes: dict = {key: val for key, val in incident_attributes_transformer(args).items() if val}
 
-    # TODO: Check for the batch ID generation
     raw_incidents_update_response: dict = client.service.updateIncidents(
         updateBatch={
-            'batchId': str(random.randint(11111, 99999)),
-            'incidentIt': incident_id,
+            'batchId': '_' + str(uuid.uuid1()),
+            'incidentId': incident_id,
             'incidentAttributes': incident_attributes
         }
     )
@@ -247,6 +247,7 @@ def incident_binaries_command(client: Client, args: Dict) -> Tuple[str, Dict, Di
     entry_context: dict = {}
     raw_response: dict = {}
 
+    # TODO: Return the file
     if raw_incident_binaries:
         serialized_incident_binaries = helpers.serialize_object(raw_incident_binaries)
         raw_response = serialized_incident_binaries
@@ -351,6 +352,7 @@ def incident_violations_command(client: Client, args: Dict) -> Tuple[str, Dict, 
     return human_readable, entry_context, raw_response
 
 
+# TODO: Check this function
 def fetch_incidents(client: Client, fetch_time: str, fetch_limit: int, last_run: dict, saved_report_id: str):
     # We use parse to get out time in datetime format and not iso, that's what Symantec DLP is expecting to get
     if last_run and last_run.get('last_fetched_event_iso'):
