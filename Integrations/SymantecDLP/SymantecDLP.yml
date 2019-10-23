@@ -207,6 +207,7 @@ script:
     deprecated: false
     execution: false
     name: symantec-dlp-update-incident
+    description: TBD
   - arguments:
     - default: false
       description: Incident ID to get binaries of.
@@ -241,6 +242,7 @@ script:
     deprecated: false
     execution: false
     name: symantec-dlp-incident-binaries
+    description: TBD
     outputs:
     - contextPath: SymantecDLP.Incident.ID
       description: The ID of the incident.
