@@ -157,3 +157,67 @@ def test_parse_custom_attribute():
         {'name': 'First Name', 'value': 'Admin'}
     ]
     assert custom_attribute_group_list_output == parse_custom_attribute(custom_attribute_group_list, args_group)
+
+
+def test_parse_violating_component():
+    from SymantecDLP import parse_violating_component
+    violating_component_list_input = [
+        {
+            'name': 'C:\\Users\\Administrator\\Desktop\\CCN.txt',
+            'documentFormat': 'ascii',
+            'violatingComponentType': {
+                '_value_1': 'Attachment',
+                'id': 3
+            },
+            'violationCount': 1,
+            'violatingSegment': [
+                {
+                    'documentViolation': None,
+                    'fileSizeViolation': None,
+                    'text': [
+                        {
+                            '_value_1': '4386280016300125',
+                            'type': 'Violation',
+                            'ruleId': 12288,
+                            'ruleName': 'CCN number'
+                        },
+                        {
+                            '_value_1': '\n',
+                            'type': 'NonViolation',
+                            'ruleId': None,
+                            'ruleName': None
+                        }
+                    ]
+                }
+            ],
+            'violatingImageInformation': [],
+            'id': 69248,
+            'longId': 69248
+        }
+    ]
+    violating_component_list_output = [
+        {
+            'Name': 'C:\\Users\\Administrator\\Desktop\\CCN.txt',
+            'DocumentFormat': 'ascii',
+            'ViolatingComponentType': 'Attachment',
+            'ViolatingComponentTypeID': 3,
+            'ViolatingCount': 1,
+            'ViolationSegment': [
+                {
+                    'Text': [
+                        {
+                            'Data': '4386280016300125',
+                            'Type': 'Violation',
+                            'RuleID': 12288,
+                            'RuleName': 'CCN number'
+                        },
+                        {
+                            'Data': '\n',
+                            'Type': 'NonViolation'
+                        }
+                    ]
+                }
+            ]
+        }
+    ]
+    assert violating_component_list_output == parse_violating_component(violating_component_list_input)

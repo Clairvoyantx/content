@@ -33,6 +33,62 @@ class SymantecAuth(AuthBase):
 ''' HELPER FUNCTIONS '''
 
 
+def parse_text(raw_text_list: list) -> list:
+    """
+    Return the parsed text list
+    :param raw_text_list: the raw text list
+    :return: the parsed text list
+    """
+    text_list: list = []
+    for raw_text in raw_text_list:
+        text: dict = {
+            'Data': raw_text.get('_value_1'),
+            'Type': raw_text.get('type'),
+            'RuleID': raw_text.get('ruleId'),
+            'RuleName': raw_text.get('ruleName')
+        }
+        text_list.append({key: val for key, val in text.items() if val})
+    return text_list
+
+
+def parse_violation_segment(raw_violation_segment_list: list) -> list:
+    """
+    Return the parsed violation segment list
+    :param raw_violation_segment_list: the raw violating segment list
+    :return: the parsed violation segment list
+    """
+    violation_segment_list: list = []
+    for raw_violation_segment in raw_violation_segment_list:
+        violation_segment: dict = {
+            'DocumentViolation': raw_violation_segment.get('documentViolation'),
+            'FileSizeViolation': raw_violation_segment.get('fileSizeViolation'),
+            'Text': parse_text(raw_violation_segment.get('text', []))
+        }
+        violation_segment_list.append({key: val for key, val in violation_segment.items() if val})
+    return violation_segment_list
+
+
+def parse_violating_component(raw_violating_component_list: list) -> list:
+    """
+    Return the parsed violating component list
+    :param raw_violating_component_list: the raw violating component list
+    :return: the parsed violating component list
+    """
+    violating_component_list: list = []
+    for raw_violating_component in raw_violating_component_list:
+        violating_component_type: dict = raw_violating_component.get('violatingComponentType', {})
+        violating_component: dict = {
+            'Name': raw_violating_component.get('name'),
+            'DocumentFormat': raw_violating_component.get('documentFormat'),
+            'ViolatingComponentType': violating_component_type.get('_value_1'),
+            'ViolatingComponentTypeID': violating_component_type.get('id'),
+            'ViolatingCount': raw_violating_component.get('violationCount'),
+            'ViolationSegment': parse_violation_segment(raw_violating_component.get('violatingSegment', []))
+        }
+        violating_component_list.append({key: val for key, val in violating_component.items() if val})
+    return violating_component_list
+
+
 def parse_violated_policy_rule(violated_policy_rule_list: list) -> list:
     """
     Parses a list of rules to context paths
@@ -60,6 +116,11 @@ def parse_other_violated_policy(other_violated_policy_list: list) -> list:
 
 
 def get_all_group_custom_attributes(group: dict) -> list:
+    """
+    Returns a list of all the custom attributes in the group
+    :param group: the group
+    :return: the list of all custom attributes
+    """
     custom_attributes_list: list = []
     for raw_custom_attribute in group.get('customAttribute', []):
         custom_attribute: dict = {'name': raw_custom_attribute.get('name')}
@@ -71,6 +132,20 @@ def get_all_group_custom_attributes(group: dict) -> list:
 
 
 def parse_custom_attribute(custom_attribute_group_list: list, args: dict) -> list:
+    """
+    Returns a list of all custom attributes chosen by the user.
+    There are four options to choose from: all, none, custom, group.
+    The choosing flag is given in demisto.args value in the field custom_attributes.
+    If the user has chosen "all" then the function will return all custom attributes possible (from all groups).
+    If the user has chosen "none" then the function won't return any custom attributes.
+    If the user has chosen "custom" then he must also provide a list of all custom attribute names in the demisto.args
+    dict under the field "custom_values". If not provided, an error msg will be shown. If provided, the function
+    will return only the custom attributes mentioned in the custom_values list.
+    If the user has chosen "group" the handling of this option is similiar to the "custom" option.
+    :param custom_attribute_group_list: the raw list of custom attributes group (as returned from the request)
+    :param args: demisto.args
+    :return: the parsed custom attributes list
+    """
     custom_attributes_flag = args.get('custom_attributes')
     custom_attributes_list: list = []
 
@@ -285,12 +360,10 @@ def get_incident_details_command(client: Client, args: dict) -> Tuple[str, dict,
     if raw_incident and isinstance(raw_incident, list):
         serialized_incident = helpers.serialize_object(raw_incident[0])
         raw_response = serialized_incident
-        # TODO: Transform into context & filter empty values
         raw_incident_details: dict = json.loads(json.dumps(serialized_incident, default=datetime_to_iso_format))
         incident_details: dict = get_incident_details(raw_incident_details, args)
         # TODO: Add headers to tableToMarkdown
         human_readable = tableToMarkdown(f'Symantec DLP incident {incident_id}', incident_details, removeNull=True)
-        # TODO: Transform into context standards & filter empty values
         context_standard_outputs: dict = incident_details
         entry_context = {
             'SymantecDLP': {
@@ -305,7 +378,6 @@ def get_incident_details_command(client: Client, args: dict) -> Tuple[str, dict,
     return human_readable, entry_context, raw_response
 
 
-# TODO: Check the output to context
 def list_incidents_command(client: Client, args: dict, saved_report_id: str) -> Tuple[str, dict, dict]:
     if not saved_report_id:
         raise ValueError('Missing saved report ID. Configure it in the integration instance settings.')
@@ -408,7 +480,6 @@ def incident_binaries_command(client: Client, args: dict) -> Tuple[str, dict, di
         human_readable = tableToMarkdown(f'Symantec DLP incident {incident_id} binaries', outputs,
                                          headers=headers, removeNull=True)
 
-        # TODO: Check if needs to output context standards - data inside component
         entry_context = {
             'SymantecDLP': {
                 'Incident(val.ID && val.ID === obj.ID)': incident_binaries
@@ -470,14 +541,16 @@ def incident_violations_command(client: Client, args: dict) -> Tuple[str, dict, 
     raw_response: dict = {}
 
     if raw_incident_violations:
-        serialized_incident_violations = helpers.serialize_object(raw_incident_violations)
-        raw_response = serialized_incident_violations
-        # TODO: Transform into context & filter empty values
-        incident_violations = serialized_incident_violations
-        # TODO: Add headers to tableToMarkdown
-        human_readable = tableToMarkdown(f'Symantec DLP incident {incident_id} violations', incident_violations,
-                                         removeNull=True)
-        # TODO: Check if needs to output context standards
+        raw_incident_violations = helpers.serialize_object(raw_incident_violations)
+        raw_response = raw_incident_violations
+        incident_violations: dict = {
+            'ID': raw_incident_violations.get('incidentId'),
+            'LongID': raw_incident_violations.get('incidentLongId'),
+            'StatusCode': raw_incident_violations.get('statusCode'),
+            'ViolatingComponent': parse_violating_component(raw_incident_violations.get('violatingComponent', []))
+        }
+        human_readable = tableToMarkdown(f'Symantec DLP incident {incident_id} violations',
+                                         {'ID': incident_violations.get('ID')}, removeNull=True)
         entry_context = {
             'SymantecDLP': {
                 'Incident(val.ID && val.ID === obj.ID)': incident_violations
