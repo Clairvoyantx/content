@@ -80,8 +80,8 @@ def parse_violating_component(raw_violating_component_list: list) -> list:
         violating_component: dict = {
             'Name': raw_violating_component.get('name'),
             'DocumentFormat': raw_violating_component.get('documentFormat'),
-            'ViolatingComponentType': violating_component_type.get('_value_1'),
-            'ViolatingComponentTypeID': violating_component_type.get('id'),
+            'Type': violating_component_type.get('_value_1'),
+            'TypeID': violating_component_type.get('id'),
             'ViolatingCount': raw_violating_component.get('violationCount'),
             'ViolationSegment': parse_violation_segment(raw_violating_component.get('violatingSegment', []))
         }
@@ -123,10 +123,10 @@ def get_all_group_custom_attributes(group: dict) -> list:
     """
     custom_attributes_list: list = []
     for raw_custom_attribute in group.get('customAttribute', []):
-        custom_attribute: dict = {'name': raw_custom_attribute.get('name')}
+        custom_attribute: dict = {'Name': raw_custom_attribute.get('name')}
         custom_attribute_value = raw_custom_attribute.get('value')
         if custom_attribute_value:
-            custom_attribute['value'] = custom_attribute_value
+            custom_attribute['Value'] = custom_attribute_value
         custom_attributes_list.append(custom_attribute)
     return custom_attributes_list
 
@@ -177,10 +177,10 @@ def parse_custom_attribute(custom_attribute_group_list: list, args: dict) -> lis
             for raw_custom_attribute in group.get('customAttribute', []):
                 custom_attribute_name: str = raw_custom_attribute.get('name')
                 if custom_attribute_name in custom_attribute_name_list:
-                    custom_attribute: dict = {'name': custom_attribute_name}
+                    custom_attribute: dict = {'Name': custom_attribute_name}
                     custom_attribute_value = raw_custom_attribute.get('value')
                     if custom_attribute_value:
-                        custom_attribute['value'] = custom_attribute_value
+                        custom_attribute['Value'] = custom_attribute_value
                     custom_attributes_list.append(custom_attribute)
 
     # none case - If custom_attributes_flag == 'none' than we return empty list
@@ -198,6 +198,7 @@ def get_incident_details(raw_incident_details: dict, args: dict) -> dict:
     message_source: dict = incident.get('messageSource', {})
     message_type: dict = incident.get('messageType', {})
     policy: dict = incident.get('policy', {})
+    data_owner: dict = incident.get('dataOwner', {})
     incident_details: dict = {
         'ID': raw_incident_details.get('incidentID'),
         'LongID': raw_incident_details.get('incidentLongId'),
@@ -210,20 +211,25 @@ def get_incident_details(raw_incident_details: dict, args: dict) -> dict:
         'MessageSourceType': message_source.get('sourceType'),
         'MessageType': message_type.get('_value_1'),
         'MessageTypeID': message_type.get('typeId'),
-        'Policy': {
+        'Policy(val.ID && val.ID === obj.ID)': {
             'Name': policy.get('name'),
             'Version': policy.get('version'),
             'Label': policy.get('label'),
             'ID': policy.get('policyId')
         },
-        'ViolatedPolicyRule': parse_violated_policy_rule(incident.get('violatedPolicyRule', [])),
-        'OtherViolatedPolicy': parse_other_violated_policy(incident.get('otherViolatedPolicy', [])),
+        'ViolatedPolicyRule(val.ID && val.ID === obj.ID)':
+            parse_violated_policy_rule(incident.get('violatedPolicyRule', [])),
+        'OtherViolatedPolicy(val.ID && val.ID === obj.ID)':
+            parse_other_violated_policy(incident.get('otherViolatedPolicy', [])),
         'BlockedStatus': incident.get('blockedStatus'),
         'MatchCount': incident.get('matchCount'),
         'RuleViolationCount': incident.get('ruleViolationCount'),
         'DetectionServer': incident.get('detectionServer'),
         'CustomAttribute': parse_custom_attribute(incident.get('customAttributeGroup', []), args),
-        'DataOwner': incident.get('dataOwner'),
+        'DataOwner': {
+            'Name': data_owner.get('name'),
+            'Email': data_owner.get('email')
+        },
         'EventDate': incident.get('eventDate')
     }
     return {key: val for key, val in incident_details.items() if val}
@@ -374,11 +380,7 @@ def get_incident_details_command(client: Client, args: dict) -> Tuple[str, dict,
                 outputs[headers[raw_headers.index(raw_header)]] = incident_details.get(raw_header)
         human_readable = tableToMarkdown(f'Symantec DLP incident {incident_id} details', outputs, headers=headers,
                                          removeNull=True)
-        entry_context = {
-            'SymantecDLP': {
-                'Incident(val.ID && val.ID === obj.ID)': incident_details
-            }
-        }
+        entry_context = {'SymantecDLP.Incident(val.ID && val.ID === obj.ID)': incident_details}
     else:
         human_readable = 'No incident found.'
 
@@ -407,9 +409,7 @@ def list_incidents_command(client: Client, args: dict, saved_report_id: str) -> 
             raw_response = serialized_incidents
             incidents = [{'ID': str(incident_id)} for incident_id in incidents_ids_list]
             human_readable = tableToMarkdown('Symantec DLP incidents', incidents, removeNull=True)
-            entry_context = {
-                'SymantecDLP.Incident(val.ID && val.ID == obj.ID)': incidents
-            }
+            entry_context = {'SymantecDLP.Incident(val.ID && val.ID == obj.ID)': incidents}
         else:
             human_readable = 'No incidents found.'
     else:
@@ -487,11 +487,8 @@ def incident_binaries_command(client: Client, args: dict) -> Tuple[str, dict, di
         human_readable = tableToMarkdown(f'Symantec DLP incident {incident_id} binaries', outputs,
                                          headers=headers, removeNull=True)
 
-        entry_context = {
-            'SymantecDLP': {
-                'Incident(val.ID && val.ID === obj.ID)': incident_binaries
-            }
-        }
+        # TODO: Check for the DT - maybe "dores"
+        entry_context = {'SymantecDLP.Incident(val.ID && val.ID === obj.ID)': incident_binaries}
     else:
         human_readable = 'No incident found.'
 
@@ -550,6 +547,7 @@ def incident_violations_command(client: Client, args: dict) -> Tuple[str, dict, 
     if raw_incident_violations:
         raw_incident_violations = helpers.serialize_object(raw_incident_violations)
         raw_response = raw_incident_violations
+        # TODO: Check if in generic incident the violating component we parse is what is in the design
         incident_violations: dict = {
             'ID': raw_incident_violations.get('incidentId'),
             'LongID': raw_incident_violations.get('incidentLongId'),
@@ -558,11 +556,7 @@ def incident_violations_command(client: Client, args: dict) -> Tuple[str, dict, 
         }
         human_readable = tableToMarkdown(f'Symantec DLP incident {incident_id} violations',
                                          {'ID': incident_violations.get('ID')}, removeNull=True)
-        entry_context = {
-            'SymantecDLP': {
-                'Incident(val.ID && val.ID === obj.ID)': incident_violations
-            }
-        }
+        entry_context = {'SymantecDLP.Incident(val.ID && val.ID === obj.ID)': incident_violations}
     else:
         human_readable = 'No incident status found.'
 

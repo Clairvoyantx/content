@@ -93,6 +93,94 @@ script:
     description: Returns the details of a specified incident
     execution: false
     name: symantec-dlp-get-incident-details
+    outputs:
+    - contextPath: ' SymantecDLP.Incident.ID'
+      description: The ID of the incident.
+      type: Number
+    - contextPath: SymantecDLP.Incident.LongID
+      description: The long ID of the incident.
+      type: Number
+    - contextPath: SymantecDLP.Incident.StatusCode
+      description: The status code of the incident.
+      type: String
+    - contextPath: SymantecDLP.Incident.CreationDate
+      description: The creation date of the incident.
+      type: Date
+    - contextPath: SymantecDLP.Incident.DetectionDate
+      description: The detection date of the incident.
+      type: Date
+    - contextPath: SymantecDLP.Incident.Severity
+      description: The severity of the incident.
+      type: String
+    - contextPath: SymantecDLP.Incident.MessageSource
+      description: TBD
+      type: String
+    - contextPath: SymantecDLP.Incident.MessageSourceType
+      description: TBD
+      type: String
+    - contextPath: SymantecDLP.Incident.MessageType
+      description: TBD
+      type: String
+    - contextPath: SymantecDLP.Incident.MessageTypeID
+      description: TBD
+      type: Number
+    - contextPath: SymantecDLP.Incident.Policy.Name
+      description: TBD
+      type: String
+    - contextPath: SymantecDLP.Incident.Policy.Version
+      description: TBD
+      type: String
+    - contextPath: SymantecDLP.Incident.Policy.Label
+      description: TBD
+      type: String
+    - contextPath: SymantecDLP.Incident.Policy.ID
+      description: TBD
+      type: Number
+    - contextPath: SymantecDLP.Incident.BlockedStatus
+      description: TBD
+      type: String
+    - contextPath: SymantecDLP.Incident.MatchCount
+      description: TBD
+      type: Number
+    - contextPath: SymantecDLP.Incident.RuleViolationCount
+      description: TBD
+      type: Number
+    - contextPath: SymantecDLP.Incident.DetectionServer
+      description: TBD
+      type: String
+    - contextPath: SymantecDLP.Incident.DataOwner.Name
+      description: TBD
+      type: String
+    - contextPath: SymantecDLP.Incident.DataOwner.Email
+      description: TBD
+      type: String
+    - contextPath: SymantecDLP.Incident.EventDate
+      description: TBD
+      type: Date
+    - contextPath: SymantecDLP.Incident.ViolatedPolicyRule.Name
+      description: TBD
+      type: String
+    - contextPath: SymantecDLP.Incident.ViolatedPolicyRule.ID
+      description: TBD
+      type: Number
+    - contextPath: SymantecDLP.Incident.OtherViolatedPolicy.Name
+      description: TBD
+      type: String
+    - contextPath: SymantecDLP.Incident.OtherViolatedPolicy.Version
+      description: TBD
+      type: String
+    - contextPath: SymantecDLP.Incident.OtherViolatedPolicy.Label
+      description: TBD
+      type: String
+    - contextPath: SymantecDLP.Incident.OtherViolatedPolicy.ID
+      description: TBD
+      type: Number
+    - contextPath: SymantecDLP.Incident.CustomAttribute.Name
+      description: The custom attribute name.
+      type: String
+    - contextPath: SymantecDLP.Incident.CustomAttribute.Value
+      description: The custom attribute value.
+      type: String
   - arguments:
     - default: false
       description: Incident ID to update.
@@ -205,9 +293,9 @@ script:
       required: false
       secret: false
     deprecated: false
+    description: TBD
     execution: false
     name: symantec-dlp-update-incident
-    description: TBD
   - arguments:
     - default: false
       description: Incident ID to get binaries of.
@@ -240,9 +328,9 @@ script:
       required: false
       secret: false
     deprecated: false
+    description: TBD
     execution: false
     name: symantec-dlp-incident-binaries
-    description: TBD
     outputs:
     - contextPath: SymantecDLP.Incident.ID
       description: The ID of the incident.
@@ -306,6 +394,49 @@ script:
     description: Returns the highlighted matches for a specific incident.
     execution: false
     name: symantec-dlp-incident-violations
+    outputs:
+    - contextPath: SymantecDLP.Incident.ID
+      description: The ID of the incident.
+      type: Number
+    - contextPath: SymantecDLP.Incident.LongID
+      description: The long ID of the incident.
+      type: Number
+    - contextPath: SymantecDLP.Incident.StatusCode
+      description: The status code of the incident.
+      type: String
+    - contextPath: SymantecDLP.Incident.ViolatingComponent.Name
+      description: TBD
+      type: String
+    - contextPath: SymantecDLP.Incident.ViolatingComponent.DocumentFormat
+      description: TBD
+      type: String
+    - contextPath: SymantecDLP.Incident.ViolatingComponent.Type
+      description: TBD
+      type: String
+    - contextPath: SymantecDLP.Incident.ViolatingComponent.TypeID
+      description: TBD
+      type: Number
+    - contextPath: SymantecDLP.Incident.ViolatingComponent.ViolatingCount
+      description: TBD
+      type: Number
+    - contextPath: SymantecDLP.Incident.ViolatingComponent.ViolatingSegment.DocumentViolation
+      description: TBD
+      type: String
+    - contextPath: SymantecDLP.Incident.ViolatingComponent.ViolatingSegment.FileSizeViolation
+      description: TBD
+      type: Unknown
+    - contextPath: SymantecDLP.Incident.ViolatingComponent.ViolatingSegment.Text.Data
+      description: TBD
+      type: String
+    - contextPath: SymantecDLP.Incident.ViolatingComponent.ViolatingSegment.Text.Type
+      description: TBD
+      type: String
+    - contextPath: SymantecDLP.Incident.ViolatingComponent.ViolatingSegment.Text.RuleID
+      description: TBD
+      type: Number
+    - contextPath: SymantecDLP.Incident.ViolatingComponent.ViolatingSegment.Text.RuleName
+      description: TBD
+      type: String
   dockerimage: demisto/zeep:1.0.0.1281
   isfetch: true
   longRunning: false
