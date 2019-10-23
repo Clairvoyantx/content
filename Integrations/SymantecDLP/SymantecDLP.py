@@ -607,6 +607,7 @@ def fetch_incidents(client: Client, fetch_time: str, fetch_limit: int, last_run:
 # TODO: Check for the long ID issue
 # TODO: Check what version contributor is using
 # TODO: Ask itay what about the proxy handling
+# TODO: Improve test PB
 def main():
     params: Dict = demisto.params()
     server: str = params.get('server', '').rstrip('/')
