@@ -187,7 +187,7 @@ script:
       secret: false
     deprecated: false
     execution: false
-    name: symantec-dlp-update-incidents
+    name: symantec-dlp-update-incident
   - arguments:
     - default: false
       description: Incident ID to get binaries of.
@@ -229,12 +229,27 @@ script:
     - contextPath: SymantecDLP.Incident.LongID
       description: The long ID of the incident.
       type: Number
-    - contextPath: SymantecDLP.Incident.Component
-      description: The component list of the incident.
-      type: String
     - contextPath: SymantecDLP.Incident.OriginalMessage
       description: The original message of the incident.
       type: String
+    - contextPath: SymantecDLP.Component.ID
+      description: The ID of the component
+      type: Number
+    - contextPath: SymantecDLP.Component.Name
+      description: The name of the component.
+      type: String
+    - contextPath: SymantecDLP.Component.TypeID
+      description: The ID of the type of the component.
+      type: Number
+    - contextPath: SymantecDLP.Component.Type
+      description: The type of the component
+      type: String
+    - contextPath: SymantecDLP.Component.Content
+      description: The content of the component
+      type: String
+    - contextPath: SymantecDLP.Component.LongID
+      description: The long ID of the component.
+      type: Number
   - deprecated: false
     description: |-
       Returns a list of all custom attribute names defined in
@@ -276,5 +291,5 @@ script:
   longRunningPort: false
   runonce: false
   script: '-'
-  type: python
   subtype: python3
+  type: python
