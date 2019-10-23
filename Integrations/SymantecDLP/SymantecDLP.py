@@ -362,16 +362,23 @@ def get_incident_details_command(client: Client, args: dict) -> Tuple[str, dict,
         raw_response = serialized_incident
         raw_incident_details: dict = json.loads(json.dumps(serialized_incident, default=datetime_to_iso_format))
         incident_details: dict = get_incident_details(raw_incident_details, args)
-        # TODO: Add headers to tableToMarkdown
-        human_readable = tableToMarkdown(f'Symantec DLP incident {incident_id}', incident_details, removeNull=True)
-        context_standard_outputs: dict = incident_details
+        raw_headers = ['ID', 'CreationDate', 'DetectionDate', 'Severity', 'Status', 'MessageSourceType',
+                       'MessageType', 'Policy Name']
+        headers = ['ID', 'Creation Date', 'Detection Date', 'Severity', 'Status', 'DLP Module',
+                   'DLP Module subtype', 'Policy Name']
+        outputs: dict = {}
+        for raw_header in raw_headers:
+            if raw_header == 'Policy Name':
+                outputs['Policy Name'] = incident_details.get('Policy', {}).get('Name')
+            else:
+                outputs[headers[raw_headers.index(raw_header)]] = incident_details.get(raw_header)
+        human_readable = tableToMarkdown(f'Symantec DLP incident {incident_id} details', outputs, headers=headers,
+                                         removeNull=True)
         entry_context = {
             'SymantecDLP': {
                 'Incident(val.ID && val.ID === obj.ID)': incident_details
             }
         }
-        # merge the two dicts into one dict that outputs to context
-        entry_context.update(context_standard_outputs)
     else:
         human_readable = 'No incident found.'
 
