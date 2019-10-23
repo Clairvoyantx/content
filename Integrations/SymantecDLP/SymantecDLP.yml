@@ -70,6 +70,25 @@ script:
       name: incident_id
       required: true
       secret: false
+    - default: true
+      defaultValue: none
+      description: |-
+        This argument can get the following values:
+        all - If all custom attributes are needed
+        none - If none of the custom attributes are needed
+        custom - A list of custom attributes names, seperated by comma. For example: ca1,ca2,ca3
+        group - A list of custom attributes group names, seperated by comma. For example: cag1, cag2, cag3. This value will retrive all custom attributes in the mentioned group.
+        The value "none" is default.
+      isArray: false
+      name: custom_attributes
+      required: false
+      secret: false
+    - default: false
+      description: TBD
+      isArray: false
+      name: custom_values
+      required: false
+      secret: false
     deprecated: false
     description: Returns the details of a specified incident
     execution: false

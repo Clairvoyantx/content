@@ -33,6 +33,127 @@ class SymantecAuth(AuthBase):
 ''' HELPER FUNCTIONS '''
 
 
+def parse_violated_policy_rule(violated_policy_rule_list: list) -> list:
+    """
+    Parses a list of rules to context paths
+    :param violated_policy_rule_list: the raw rules list
+    :return: the parsed rules list
+    """
+    return [{'Name': rule.get('ruleName'), 'ID': rule.get('ruleId')} for rule in violated_policy_rule_list]
+
+
+def parse_other_violated_policy(other_violated_policy_list: list) -> list:
+    """
+    Parses a list of policies to context paths
+    :param other_violated_policy_list: the raw policies list
+    :return: the parsed policies list
+    """
+    return [
+        {
+            'Name': policy.get('name'),
+            'Version': policy.get('version'),
+            'Label': policy.get('label'),
+            'ID': policy.get('policyId')
+        }
+        for policy in other_violated_policy_list
+    ]
+
+
+def get_all_group_custom_attributes(group: dict) -> list:
+    custom_attributes_list: list = []
+    for raw_custom_attribute in group.get('customAttribute', []):
+        custom_attribute: dict = {'name': raw_custom_attribute.get('name')}
+        custom_attribute_value = raw_custom_attribute.get('value')
+        if custom_attribute_value:
+            custom_attribute['value'] = custom_attribute_value
+        custom_attributes_list.append(custom_attribute)
+    return custom_attributes_list
+
+
+def parse_custom_attribute(custom_attribute_group_list: list, args: dict) -> list:
+    custom_attributes_flag = args.get('custom_attributes')
+    custom_attributes_list: list = []
+
+    # all case
+    if custom_attributes_flag == 'all':
+        for group in custom_attribute_group_list:
+            custom_attributes_list.extend(get_all_group_custom_attributes(group))
+
+    # group case
+    elif custom_attributes_flag == 'group':
+        custom_values = args.get('custom_values')
+        if not custom_values:
+            raise DemistoException('When choosing the group value for custom_attributes argument - the custom_values'
+                                   ' list must be filled with group names. For example: custom_value=g1,g2,g3')
+        group_name_list: list = argToList(custom_values, ',')
+        for group in custom_attribute_group_list:
+            if group.get('name') in group_name_list:
+                custom_attributes_list.extend(get_all_group_custom_attributes(group))
+
+    # custom case
+    elif custom_attributes_flag == 'custom':
+        custom_values = args.get('custom_values')
+        if not custom_values:
+            raise DemistoException('When choosing the custom value for custom_attributes argument - the custom_values'
+                                   ' list must be filled with custom attribute names.'
+                                   ' For example: custom_value=ca1,ca2,ca3')
+        custom_attribute_name_list: list = argToList(custom_values, ',')
+        for group in custom_attribute_group_list:
+            for raw_custom_attribute in group.get('customAttribute', []):
+                custom_attribute_name: str = raw_custom_attribute.get('name')
+                if custom_attribute_name in custom_attribute_name_list:
+                    custom_attribute: dict = {'name': custom_attribute_name}
+                    custom_attribute_value = raw_custom_attribute.get('value')
+                    if custom_attribute_value:
+                        custom_attribute['value'] = custom_attribute_value
+                    custom_attributes_list.append(custom_attribute)
+
+    # none case - If custom_attributes_flag == 'none' than we return empty list
+    return custom_attributes_list
+
+
+def get_incident_details(raw_incident_details: dict, args: dict) -> dict:
+    """
+    Parses the needed incident details into context paths
+    :param raw_incident_details: the raw response of the incident details
+    :param args: demisto.args
+    :return: the parsed dict
+    """
+    incident: dict = raw_incident_details.get('incident', {})
+    message_source: dict = incident.get('messageSource', {})
+    message_type: dict = incident.get('messageType', {})
+    policy: dict = incident.get('policy', {})
+    incident_details: dict = {
+        'ID': raw_incident_details.get('incidentID'),
+        'LongID': raw_incident_details.get('incidentLongId'),
+        'StatusCode': raw_incident_details.get('statusCode'),
+        'CreationDate': incident.get('incidentCreationDate'),
+        'DetectionDate': incident.get('detectionDate'),
+        'Severity': incident.get('severity'),
+        'Status': incident.get('status'),
+        'MessageSource': message_source.get('_value_1'),
+        'MessageSourceType': message_source.get('sourceType'),
+        'MessageType': message_type.get('_value_1'),
+        'MessageTypeID': message_type.get('typeId'),
+        'Policy': {
+            'Name': policy.get('name'),
+            'Version': policy.get('version'),
+            'Label': policy.get('label'),
+            'ID': policy.get('policyId')
+        },
+        'ViolatedPolicyRule': parse_violated_policy_rule(incident.get('violatedPolicyRule', [])),
+        'OtherViolatedPolicy': parse_other_violated_policy(incident.get('otherViolatedPolicy', [])),
+        'BlockedStatus': incident.get('blockedStatus'),
+        'MatchCount': incident.get('matchCount'),
+        'RuleViolationCount': incident.get('ruleViolationCount'),
+        'DetectionServer': incident.get('detectionServer'),
+        'CustomAttribute': parse_custom_attribute(incident.get('customAttributeGroup', []), args),
+        'DataOwner': incident.get('dataOwner'),
+        'EventDate': incident.get('eventDate')
+    }
+    return {key: val for key, val in incident_details.items() if val}
+
+
 def get_incident_attributes(attributes: dict) -> dict:
     """
     Transforms the demisto args entered by the user into a dict representing the attributes
@@ -165,14 +286,15 @@ def get_incident_details_command(client: Client, args: dict) -> Tuple[str, dict,
         serialized_incident = helpers.serialize_object(raw_incident[0])
         raw_response = serialized_incident
         # TODO: Transform into context & filter empty values
-        incident: dict = json.loads(json.dumps(serialized_incident, default=datetime_to_iso_format))
+        raw_incident_details: dict = json.loads(json.dumps(serialized_incident, default=datetime_to_iso_format))
+        incident_details: dict = get_incident_details(raw_incident_details, args)
         # TODO: Add headers to tableToMarkdown
-        human_readable = tableToMarkdown(f'Symantec DLP incident {incident_id}', incident, removeNull=True)
+        human_readable = tableToMarkdown(f'Symantec DLP incident {incident_id}', incident_details, removeNull=True)
         # TODO: Transform into context standards & filter empty values
-        context_standard_outputs: dict = incident
+        context_standard_outputs: dict = incident_details
         entry_context = {
             'SymantecDLP': {
-                'Incident(val.ID === obj.ID)': incident
+                'Incident(val.ID && val.ID === obj.ID)': incident_details
             }
         }
         # merge the two dicts into one dict that outputs to context
@@ -183,6 +305,7 @@ def get_incident_details_command(client: Client, args: dict) -> Tuple[str, dict,
     return human_readable, entry_context, raw_response
 
 
+# TODO: Check the output to context
 def list_incidents_command(client: Client, args: dict, saved_report_id: str) -> Tuple[str, dict, dict]:
     if not saved_report_id:
         raise ValueError('Missing saved report ID. Configure it in the integration instance settings.')
@@ -200,15 +323,13 @@ def list_incidents_command(client: Client, args: dict, saved_report_id: str) -> 
 
     if raw_incidents:
         serialized_incidents: dict = helpers.serialize_object(raw_incidents)
-        incidents_ids_list: list = serialized_incidents.get('incidentId')
+        incidents_ids_list = serialized_incidents.get('incidentId')
         if incidents_ids_list:
             raw_response = serialized_incidents
-            incidents = [{'ID': incident_id} for incident_id in incidents_ids_list]
+            incidents = [{'ID': str(incident_id)} for incident_id in incidents_ids_list]
             human_readable = tableToMarkdown('Symantec DLP incidents', incidents, removeNull=True)
-            entry_context: dict = {
-                'SymantecDLP': {
-                    'Incident(val.ID === obj.ID)': incidents
-                }
+            entry_context = {
+                'SymantecDLP.Incident(val.ID && val.ID == obj.ID)': incidents
             }
         else:
             human_readable = 'No incidents found.'
@@ -270,11 +391,11 @@ def incident_binaries_command(client: Client, args: dict) -> Tuple[str, dict, di
     if raw_incident_binaries:
         serialized_incident_binaries: dict = helpers.serialize_object(raw_incident_binaries)
         raw_response = serialized_incident_binaries
+        component = serialized_incident_binaries.get('Component')
         incident_binaries: dict = {
             'ID': serialized_incident_binaries.get('incidentId'),
             'OriginalMessage': serialized_incident_binaries.get('originalMessage'),
-            'Component(val.ID === obj.ID)': parse_component(
-                serialized_incident_binaries.get('Component')),  # type: ignore
+            'Component(val.ID && val.ID === obj.ID)': parse_component(component),  # type: ignore
             'LongID': serialized_incident_binaries.get('incidentLongId')
         }
 
@@ -288,9 +409,9 @@ def incident_binaries_command(client: Client, args: dict) -> Tuple[str, dict, di
                                          headers=headers, removeNull=True)
 
         # TODO: Check if needs to output context standards - data inside component
-        entry_context: dict = {
+        entry_context = {
             'SymantecDLP': {
-                'Incident(val.ID === obj.ID)': incident_binaries
+                'Incident(val.ID && val.ID === obj.ID)': incident_binaries
             }
         }
     else:
@@ -359,7 +480,7 @@ def incident_violations_command(client: Client, args: dict) -> Tuple[str, dict, 
         # TODO: Check if needs to output context standards
         entry_context = {
             'SymantecDLP': {
-                'Incident(val.ID === obj.ID)': incident_violations
+                'Incident(val.ID && val.ID === obj.ID)': incident_violations
             }
         }
     else:

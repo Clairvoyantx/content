@@ -95,3 +95,65 @@ def test_parse_component():
     ]
     assert components_bytes_output == parse_component(components_bytes_input)
     assert components_regular_output == parse_component(components_regular_input)
+
+
+def test_parse_custom_attribute():
+    from SymantecDLP import parse_custom_attribute
+    custom_attribute_group_list = [
+        {
+            'customAttribute': [
+                {
+                    'name': 'cn',
+                    'value': None
+                }
+            ],
+            'name': 'Default Attribute Group'
+        },
+        {
+            'customAttribute': [
+                {
+                    'name': 'Resolution',
+                    'value': None
+                },
+                {
+                    'name': 'First Name',
+                    'value': 'Admin'
+                }
+            ],
+            'name': 'Predefined'
+        }
+    ]
+    args_all = {'custom_attributes': 'all'}
+    custom_attribute_all_list_output = [
+        {'name': 'cn'},
+        {'name': 'Resolution'},
+        {'name': 'First Name', 'value': 'Admin'}
+    ]
+    assert custom_attribute_all_list_output == parse_custom_attribute(custom_attribute_group_list, args_all)
+    args_none = {'custom_attributes': 'none'}
+    assert [] == parse_custom_attribute(custom_attribute_group_list, args_none)
+    args_custom = {'custom_attributes': 'custom'}
+    with raises(DemistoException, match='When choosing the custom value for custom_attributes argument -'
+                                        ' the custom_values list must be filled with custom attribute names.'
+                                        ' For example: custom_value=ca1,ca2,ca3'):
+        parse_custom_attribute(custom_attribute_group_list, args_custom)
+    args_custom['custom_values'] = 'cn, First Name, bbb'
+    custom_attribute_custom_list_output = [
+        {'name': 'cn'},
+        {'name': 'First Name', 'value': 'Admin'}
+    ]
+    assert custom_attribute_custom_list_output == parse_custom_attribute(custom_attribute_group_list, args_custom)
+    args_custom['custom_values'] = 'aaa'
+    assert [] == parse_custom_attribute(custom_attribute_group_list, args_custom)
+    args_group = {'custom_attributes': 'group'}
+    with raises(DemistoException, match='When choosing the group value for custom_attributes argument -'
+                                        ' the custom_values list must be filled with group names.'
+                                        ' For example: custom_value=g1,g2,g3'):
+        parse_custom_attribute(custom_attribute_group_list, args_group)
+    args_group['custom_values'] = 'Default Attribute Group, Predefined, uuu'
+    custom_attribute_group_list_output = [
+        {'name': 'cn'},
+        {'name': 'Resolution'},
+        {'name': 'First Name', 'value': 'Admin'}
+    ]
+    assert custom_attribute_group_list_output == parse_custom_attribute(custom_attribute_group_list, args_group)
